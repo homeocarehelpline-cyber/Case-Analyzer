@@ -74,16 +74,15 @@ if submit_button:
         রোগীর বিবরণ নিচে দেওয়া হলো:
         """
         
-        with st.spinner("AI বিশ্লেষণ করছে... দয়া করে অপেক্ষা করুন..."):
+       with st.spinner("AI বিশ্লেষণ করছে... দয়া করে অপেক্ষা করুন..."):
             try:
-                # ছবি থাকলে ভিশন মডেল কাজ করবে
+                # লেটেস্ট ফ্ল্যাশ মডেল (যা ছবি ও লেখা দুটোই বোঝে)
+                model = genai.GenerativeModel('gemini-1.5-flash')
+                
                 if uploaded_images:
-                    model = genai.GenerativeModel('gemini-1.5-flash')
                     content = [prompt, case_text] + uploaded_images
                     response = model.generate_content(content)
                 else:
-                    # ছবি না থাকলে শুধু টেক্সট মডেল কাজ করবে
-                    model = genai.GenerativeModel('gemini-1.5-flash')
                     response = model.generate_content([prompt, case_text])
                 
                 # ফলাফল প্রদর্শন
@@ -92,19 +91,4 @@ if submit_button:
                 st.markdown(response.text)
                 
             except Exception as e:
-                # যদি flash কাজ না করে, তবে pro মডেল দিয়ে চেষ্টা করবে
-                try:
-                    if uploaded_images:
-                        model = genai.GenerativeModel('gemini-1.5-pro')
-                        content = [prompt, case_text] + uploaded_images
-                        response = model.generate_content(content)
-                    else:
-                        model = genai.GenerativeModel('gemini-1.5-pro')
-                        response = model.generate_content([prompt, case_text])
-                    
-                    st.success("✅ বিশ্লেষণ সম্পন্ন হয়েছে!")
-                    st.markdown("### 📊 AI Analysis Report")
-                    st.markdown(response.text)
-                except Exception as inner_e:
-                     st.error(f"⚠️ এপিআই মডেল বা অন্য কোনো সমস্যা হয়েছে: {inner_e}")
                 st.error(f"⚠️ একটি সমস্যা হয়েছে: {e}")
