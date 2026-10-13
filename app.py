@@ -77,12 +77,14 @@ if submit_button:
         
         with st.spinner("AI বিশ্লেষণ করছে... দয়া করে অপেক্ষা করুন..."):
             try:
-                # যদি ছবি থাকে তবে ছবি এবং টেক্সট একসাথে পাঠাবে
+                # যদি ছবি আপলোড করা থাকে তবে ভিশন মডেল কাজ করবে
                 if uploaded_images:
+                    model = genai.GenerativeModel('gemini-pro-vision')
                     content = [prompt, case_text] + uploaded_images
                     response = model.generate_content(content)
                 else:
-                    # ছবি না থাকলে শুধু টেক্সট পাঠাবে
+                    # ছবি না থাকলে শুধু টেক্সট মডেল কাজ করবে
+                    model = genai.GenerativeModel('gemini-pro')
                     response = model.generate_content([prompt, case_text])
                 
                 # ফলাফল প্রদর্শন
