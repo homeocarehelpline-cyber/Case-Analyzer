@@ -33,7 +33,7 @@ with st.form("case_form"):
         accept_multiple_files=True
     )
     
-    # ফর্মের সাবমিট বাটন (এটি ফর্মের ভেতরেই সংজ্ঞায়িত করা হলো)
+    # ফর্মের সাবমিট বাটন
     submit_button = st.form_submit_button("🔍 Analyze Case")
 
 # যদি আপলোড করা ফাইল থাকে, তবে সেগুলো স্ক্রিনে দেখানো
@@ -69,8 +69,15 @@ if submit_button:
         
         with st.spinner("AI বিশ্লেষণ করছে... দয়া করে অপেক্ষা করুন..."):
             try:
-                # সবচেয়ে নির্ভরযোগ্য ও ডাইনামিক মডেল ব্যবহার
-                model = genai.GenerativeModel('gemini-1.5-flash')
+                # আপনার এপিআই কী অনুযায়ী কাজ করতে সক্ষম যেকোনো সঠিক মডেলটি স্বয়ংক্রিয়ভাবে খুঁজে নেওয়ার লজিক
+                selected_model_name = 'gemini-1.5-flash'
+                for m in genai.list_models():
+                    if 'generateContent' in m.supported_generation_methods:
+                        if '1.5' in m.name or 'flash' in m.name:
+                            selected_model_name = m.name
+                            break
+                
+                model = genai.GenerativeModel(selected_model_name)
                 
                 if uploaded_images:
                     content = [prompt, case_text] + uploaded_images
@@ -83,17 +90,4 @@ if submit_button:
                 st.markdown(response.text)
                 
             except Exception as e:
-                # ফেইল করলে জেমিনির জেনেরিক মডেল দিয়ে ফল ব্যাক করা
-                try:
-                    model = genai.GenerativeModel('gemini-pro')
-                    if uploaded_images:
-                        content = [prompt, case_text] + uploaded_images
-                        response = model.generate_content(content)
-                    else:
-                        response = model.generate_content([prompt, case_text])
-                    
-                    st.success("✅ বিশ্লেষণ সম্পন্ন হয়েছে!")
-                    st.markdown("### 📊 AI Analysis Report")
-                    st.markdown(response.text)
-                except Exception as inner_e:
-                    st.error(f"⚠️ এপিআই সংযোগে সমস্যা হয়েছে: {inner_e}")
+                st.error(f"⚠️ এপিআই সংযোগে সমস্যা হয়েছে: {e}")
