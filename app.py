@@ -60,7 +60,7 @@ if submit_button:
         genai.configure(api_key=api_key)
         
         # আমরা জেমিনির লেটেস্ট ফ্ল্যাশ মডেল ব্যবহার করব, যা ছবি এবং টেক্সট দুটোই বুঝতে পারে
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-1.5-pro')
         
         # দ্য মাস্টার প্রম্পট
         prompt = """
