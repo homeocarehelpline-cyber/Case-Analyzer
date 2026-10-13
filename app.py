@@ -1,3 +1,51 @@
+import streamlit as st
+import google.generativeai as genai
+from PIL import Image
+
+# ওয়েবসাইটের পেজ কনফিগারেশন
+st.set_page_config(page_title="Dr. Rahman's Homeopathy AI", page_icon="🩺", layout="wide")
+
+st.title("🩺 Homeopathic AI Case Analyzer")
+st.markdown("রোগীর লক্ষণগুলো নিচে লিখুন অথবা পূর্বের প্রেসক্রিপশন / প্যাথলজি রিপোর্টের ছবি আপলোড করুন।")
+
+# সাইডবারে API Key ইনপুট নেওয়ার ব্যবস্থা
+with st.sidebar:
+    st.header("⚙️ Settings")
+    api_key = st.text_input("Gemini API Key", type="password", help="আপনার Google AI Studio থেকে পাওয়া API Key এখানে দিন")
+    st.markdown("---")
+    st.markdown("### নির্দেশনা:")
+    st.markdown("১. রোগীর মানসিক ও শারীরিক লক্ষণ বিস্তারিত লিখুন।\n২. রোগীর কোনো ছবি বা টেস্ট রিপোর্ট থাকলে আপলোড করুন।\n৩. 'Analyze Case' বাটনে ক্লিক করুন।")
+
+# কেইস ইনপুটের জন্য ফর্ম শুরু
+with st.form("case_form"):
+    st.subheader("📝 রোগীর বর্তমান অবস্থা ও লক্ষণ")
+    
+    case_text = st.text_area(
+        "রোগীর বিস্তারিত বিবরণ (মানসিক, শারীরিক, খাবার, ঘুম, ঘাম ইত্যাদি):", 
+        height=200, 
+        placeholder="উদাহরণ: রোগীর খুব শীত লাগে, সবসময় রাগ করে থাকে, ডিম পছন্দ করে..."
+    )
+    
+    st.subheader("📎 ছবি বা রিপোর্ট আপলোড (ঐচ্ছিক)")
+    uploaded_files = st.file_uploader(
+        "রোগীর ছবি, প্যাথলজি রিপোর্ট বা পুরনো প্রেসক্রিপশন আপলোড করুন", 
+        type=["png", "jpg", "jpeg"], 
+        accept_multiple_files=True
+    )
+    
+    # ফর্মের সাবমিট বাটন (এটি ফর্মের ভেতরেই সংজ্ঞায়িত করা হলো)
+    submit_button = st.form_submit_button("🔍 Analyze Case")
+
+# যদি আপলোড করা ফাইল থাকে, তবে সেগুলো স্ক্রিনে দেখানো
+uploaded_images = []
+if uploaded_files:
+    st.subheader("📸 আপলোড করা ডকুমেন্টস:")
+    cols = st.columns(len(uploaded_files))
+    for idx, file in enumerate(uploaded_files):
+        img = Image.open(file)
+        uploaded_images.append(img)
+        cols[idx].image(img, caption=file.name, use_container_width=True)
+
 # যখন বাটন ক্লিক করা হবে
 if submit_button:
     if not api_key:
@@ -21,17 +69,9 @@ if submit_button:
         
         with st.spinner("AI বিশ্লেষণ করছে... দয়া করে অপেক্ষা করুন..."):
             try:
-                # সরাসরি জেমিনির যেকোনো উপলব্ধ মডেল খুঁজে নেওয়ার কোড
-                model = None
-                for m in genai.list_models():
-                    if 'generateContent' in m.supported_generation_methods:
-                        if 'flash' in m.name or 'pro' in m.name:
-                            model = genai.GenerativeModel(m.name)
-                            break
+                # সবচেয়ে নির্ভরযোগ্য ও ডাইনামিক মডেল ব্যবহার
+                model = genai.GenerativeModel('gemini-1.5-flash')
                 
-                if not model:
-                    model = genai.GenerativeModel('gemini-pro')
-
                 if uploaded_images:
                     content = [prompt, case_text] + uploaded_images
                     response = model.generate_content(content)
@@ -43,4 +83,17 @@ if submit_button:
                 st.markdown(response.text)
                 
             except Exception as e:
-                st.error(f"⚠️ একটি সমস্যা হয়েছে: {e}")
+                # ফেইল করলে জেমিনির জেনেরিক মডেল দিয়ে ফল ব্যাক করা
+                try:
+                    model = genai.GenerativeModel('gemini-pro')
+                    if uploaded_images:
+                        content = [prompt, case_text] + uploaded_images
+                        response = model.generate_content(content)
+                    else:
+                        response = model.generate_content([prompt, case_text])
+                    
+                    st.success("✅ বিশ্লেষণ সম্পন্ন হয়েছে!")
+                    st.markdown("### 📊 AI Analysis Report")
+                    st.markdown(response.text)
+                except Exception as inner_e:
+                    st.error(f"⚠️ এপিআই সংযোগে সমস্যা হয়েছে: {inner_e}")
